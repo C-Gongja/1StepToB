@@ -1,0 +1,4 @@
+interface todayState {
+	today: Date;
+}
+
