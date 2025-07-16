@@ -29,21 +29,30 @@ export const formatDateTime = (date: Date): string => {
 	return `${formatDate(date)} ${formatTime(date)}`;
 };
 
-export const isToday = (date: Date): boolean => {
+export const isToday = (date: Date | string | undefined): boolean => {
+	if (!date) return false;
+	const dateObj = date instanceof Date ? date : new Date(date);
+	if (isNaN(dateObj.getTime())) return false;
 	const today = new Date();
-	return date.toDateString() === today.toDateString();
+	return dateObj.toDateString() === today.toDateString();
 };
 
-export const isTomorrow = (date: Date): boolean => {
+export const isTomorrow = (date: Date | string | undefined): boolean => {
+	if (!date) return false;
+	const dateObj = date instanceof Date ? date : new Date(date);
+	if (isNaN(dateObj.getTime())) return false;
 	const tomorrow = new Date();
 	tomorrow.setDate(tomorrow.getDate() + 1);
-	return date.toDateString() === tomorrow.toDateString();
+	return dateObj.toDateString() === tomorrow.toDateString();
 };
 
-export const isOverdue = (date: Date): boolean => {
+export const isOverdue = (date: Date | string | undefined): boolean => {
+	if (!date) return false;
+	const dateObj = date instanceof Date ? date : new Date(date);
+	if (isNaN(dateObj.getTime())) return false;
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
-	return date < today;
+	return dateObj < today;
 };
 
 export const getWeekDates = (startDate: Date): Date[] => {

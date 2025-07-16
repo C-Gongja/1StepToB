@@ -40,13 +40,13 @@ const ScheduleItem: React.FC<ScheduleItemProps> = React.memo(({
 	};
 
 	return (
-		<View style={[
-			styles.container,
-			{ backgroundColor: item.color }
-		]}>
+		<View style={styles.container}>
 			<View style={{ flexDirection: 'column' }}>
 				<View style={styles.contentContainer}>
-					<Text style={styles.title}>{item.title}</Text>
+					<View style={styles.titleRow}>
+						<View style={[styles.colorCircle, { backgroundColor: item.color }]} />
+						<Text style={styles.title}>{item.title}</Text>
+					</View>
 					{item.description && (
 						<Text style={styles.description}>{item.description}</Text>
 					)}
@@ -75,13 +75,14 @@ export default ScheduleItem;
 
 const styles = StyleSheet.create({
 	container: {
+		width: '100%',
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
 		backgroundColor: '#fff',
 		marginVertical: 4,
-		marginHorizontal: 16,
-		borderRadius: 12,
+		// marginHorizontal: 16,
+		// borderRadius: 12,
 		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.1,
@@ -101,11 +102,22 @@ const styles = StyleSheet.create({
 	contentContainer: {
 		flex: 1,
 	},
+	titleRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 4,
+	},
 	title: {
 		fontSize: 16,
 		fontWeight: '600',
 		color: '#333',
-		marginBottom: 4,
+		flex: 1,
+	},
+	colorCircle: {
+		width: 12,
+		height: 12,
+		borderRadius: 6,
+		marginRight: 8,
 	},
 	description: {
 		fontSize: 14,

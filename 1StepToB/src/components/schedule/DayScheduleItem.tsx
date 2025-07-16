@@ -13,12 +13,16 @@ interface DayScheduleItemProps {
 	item: ScheduledItem;
 	onEdit: (item: ScheduledItem) => void;
 	onDelete: (id: string) => void;
+	containerHeight?: number;
+	duration?: number;
 }
 
 const DayScheduleItem: React.FC<DayScheduleItemProps> = React.memo(({
 	item,
 	onEdit,
 	onDelete,
+	containerHeight = 50,
+	duration = 60,
 }) => {
 	const getTimeText = () => {
 		if (item.isAllDay) {
@@ -27,29 +31,36 @@ const DayScheduleItem: React.FC<DayScheduleItemProps> = React.memo(({
 		return `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`;
 	};
 
+	// Height-based rendering logic
+	const shouldShowDescription = containerHeight > 60 && duration > 30;
+	const shouldShowCategory = containerHeight > 80 && duration > 60;
+	const shouldShowTimeAtBottom = containerHeight > 40;
+
 	return (
 		<View style={[
 			styles.container,
-			{ backgroundColor: item.color || '#007AFF' }
+			{ backgroundColor: item.color || '#ffff' }
 		]}>
 			<View style={styles.contentContainer}>
 				<Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
 					{item.title}
 				</Text>
-				{item.description && (
+				{shouldShowDescription && item.description && (
 					<Text style={styles.description} numberOfLines={3} ellipsizeMode="tail">
 						{item.description}
 					</Text>
 				)}
-				{item.category && (
+				{shouldShowCategory && item.category && (
 					<Text style={styles.category} numberOfLines={1} ellipsizeMode="tail">
 						🏷️ {item.category}
 					</Text>
 				)}
 			</View>
-			<View style={styles.timeContainer}>
-				<Text style={styles.timeText}>{getTimeText()}</Text>
-			</View>
+			{shouldShowTimeAtBottom && (
+				<View style={styles.timeContainer}>
+					<Text style={styles.timeText}>{getTimeText()}</Text>
+				</View>
+			)}
 		</View>
 	);
 });
@@ -64,14 +75,13 @@ const styles = StyleSheet.create({
 		marginVertical: 0,
 		marginHorizontal: 0,
 		borderRadius: 6,
-		// borderWidth: 2,
-		// borderColor: '#FF0000',
 		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.1,
 		shadowRadius: 4,
 		elevation: 3,
-		padding: 8,
+		paddingVertical: 3,
+		paddingHorizontal: 6,
 		height: '100%',
 		width: '100%',
 	},
@@ -84,11 +94,18 @@ const styles = StyleSheet.create({
 		color: '#666',
 		fontWeight: '600',
 	},
+	timeOnly: {
+		position: 'absolute',
+		top: 4,
+		right: 4,
+		fontSize: 10,
+		fontWeight: '500',
+	},
 	contentContainer: {
 		flexShrink: 1,
 		overflow: 'hidden',
 		// paddingBottom: 24,
-		marginBottom: 4,
+		marginBottom: 0,
 	},
 	title: {
 		fontSize: 16,

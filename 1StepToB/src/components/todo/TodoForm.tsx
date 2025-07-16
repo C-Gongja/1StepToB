@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
 	View,
 	Text,
@@ -18,6 +18,7 @@ interface TodoFormProps {
 	onClose: () => void;
 	onSubmit: (data: TodoFormData) => void;
 	editingTodo?: Todo;
+	onDelete?: (id: string) => void;
 }
 
 const TodoForm: React.FC<TodoFormProps> = React.memo(({
@@ -25,35 +26,39 @@ const TodoForm: React.FC<TodoFormProps> = React.memo(({
 	onClose,
 	onSubmit,
 	editingTodo,
+	onDelete,
 }) => {
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
-	const [dueDate, setDueDate] = useState<Date | undefined>();
+	const [dueDate, setDueDate] = useState<Date | undefined>(new Date());
 	const [priority, setPriority] = useState<TodoPriority>(TodoPriority.MEDIUM);
 	const [category, setCategory] = useState('');
 	const [showDatePicker, setShowDatePicker] = useState(false);
+	const [tempDate, setTempDate] = useState<Date>(new Date());
 
-	useEffect(() => {
-		if (editingTodo) {
-			setTitle(editingTodo.title);
-			setDescription(editingTodo.description || '');
-			setDueDate(editingTodo.dueDate);
-			setPriority(editingTodo.priority);
-			setCategory(editingTodo.category || '');
-		} else {
-			resetForm();
-		}
-	}, [editingTodo, visible]);
-
-	const resetForm = () => {
+	const resetForm = useCallback(() => {
 		setTitle('');
 		setDescription('');
-		setDueDate(undefined);
+		setDueDate(new Date());
 		setPriority(TodoPriority.MEDIUM);
 		setCategory('');
-	};
+	}, []);
 
-	const handleSubmit = () => {
+	useEffect(() => {
+		if (visible) {
+			if (editingTodo) {
+				setTitle(editingTodo.title);
+				setDescription(editingTodo.description || '');
+				setDueDate(editingTodo.dueDate);
+				setPriority(editingTodo.priority);
+				setCategory(editingTodo.category || '');
+			} else {
+				resetForm();
+			}
+		}
+	}, [editingTodo, visible, resetForm]);
+
+	const handleSubmit = useCallback(() => {
 		if (title.trim()) {
 			onSubmit({
 				title: title.trim(),
@@ -65,26 +70,58 @@ const TodoForm: React.FC<TodoFormProps> = React.memo(({
 			resetForm();
 			onClose();
 		}
-	};
+	}, [title, description, dueDate, priority, category, onSubmit, resetForm, onClose]);
 
-	const handleClose = () => {
+	const handleClose = useCallback(() => {
 		resetForm();
 		onClose();
-	};
+	}, [resetForm, onClose]);
 
-	const onDateChange = (event: any, selectedDate?: Date) => {
-		setShowDatePicker(Platform.OS === 'ios');
+	const openDatePicker = useCallback(() => {
+		const initialDate = dueDate
+			? (dueDate instanceof Date ? dueDate : new Date(dueDate))
+			: new Date();
+		setTempDate(initialDate);
+		setShowDatePicker(true);
+	}, [dueDate]);
+
+	const onDateChange = useCallback((_: any, selectedDate?: Date) => {
 		if (selectedDate) {
-			setDueDate(selectedDate);
+			setTempDate(selectedDate);
 		}
-	};
+	}, []);
 
-	const priorityOptions = [
+	const confirmDatePicker = useCallback(() => {
+		setDueDate(tempDate);
+		setShowDatePicker(false);
+	}, [tempDate]);
+
+	const cancelDatePicker = useCallback(() => {
+		setShowDatePicker(false);
+	}, []);
+
+	const priorityOptions = useMemo(() => [
 		{ value: TodoPriority.LOW, label: 'Low', color: '#34C759' },
 		{ value: TodoPriority.MEDIUM, label: 'Medium', color: '#FFCC00' },
 		{ value: TodoPriority.HIGH, label: 'High', color: '#FF9500' },
 		{ value: TodoPriority.URGENT, label: 'Urgent', color: '#FF3B30' },
-	];
+	], []);
+
+	const handlePriorityPress = useCallback((value: TodoPriority) => {
+		setPriority(value);
+	}, []);
+
+	const clearDueDate = useCallback(() => {
+		setDueDate(new Date());
+	}, []);
+
+	const handleDeleteTodo = useCallback(() => {
+		if (editingTodo && onDelete) {
+			onDelete(editingTodo.id);
+			resetForm();
+			onClose();
+		}
+	}, [editingTodo, onDelete, resetForm, onClose]);
 
 	return (
 		<Modal
@@ -134,18 +171,18 @@ const TodoForm: React.FC<TodoFormProps> = React.memo(({
 						<Text style={styles.label}>Due Date</Text>
 						<TouchableOpacity
 							style={styles.dateButton}
-							onPress={() => setShowDatePicker(true)}
+							onPress={openDatePicker}
 						>
 							<Text style={styles.dateButtonText}>
-								{dueDate ? dueDate.toLocaleDateString() : 'Set due date (optional)'}
+								📅 {dueDate ? (dueDate instanceof Date ? dueDate.toLocaleDateString() : new Date(dueDate).toLocaleDateString()) : 'Set due date (optional)'}
 							</Text>
 						</TouchableOpacity>
 						{dueDate && (
 							<TouchableOpacity
 								style={styles.clearDateButton}
-								onPress={() => setDueDate(undefined)}
+								onPress={clearDueDate}
 							>
-								<Text style={styles.clearDateText}>Clear date</Text>
+								<Text style={styles.clearDateText}>Today</Text>
 							</TouchableOpacity>
 						)}
 					</View>
@@ -161,7 +198,7 @@ const TodoForm: React.FC<TodoFormProps> = React.memo(({
 										{ borderColor: option.color },
 										priority === option.value && { backgroundColor: option.color }
 									]}
-									onPress={() => setPriority(option.value)}
+									onPress={() => handlePriorityPress(option.value)}
 								>
 									<Text style={[
 										styles.priorityButtonText,
@@ -183,15 +220,49 @@ const TodoForm: React.FC<TodoFormProps> = React.memo(({
 							placeholder="Enter category (optional)"
 						/>
 					</View>
+
+					{/* Delete Button - Only show when editing */}
+					{editingTodo && onDelete && (
+						<View style={styles.deleteButtonContainer}>
+							<TouchableOpacity
+								style={styles.deleteButton}
+								onPress={handleDeleteTodo}
+							>
+								<Text style={styles.deleteButtonText}>🗑️ Delete Todo</Text>
+							</TouchableOpacity>
+						</View>
+					)}
 				</ScrollView>
 
+				{/* Date Picker Modal */}
 				{showDatePicker && (
-					<DateTimePicker
-						value={dueDate || new Date()}
-						mode="date"
-						display="default"
-						onChange={onDateChange}
-					/>
+					<Modal
+						transparent={true}
+						animationType="slide"
+						visible={showDatePicker}
+						onRequestClose={cancelDatePicker}
+					>
+						<View style={styles.pickerModal}>
+							<View style={styles.pickerContainer}>
+								<View style={styles.pickerHeader}>
+									<TouchableOpacity onPress={cancelDatePicker}>
+										<Text style={styles.pickerButton}>Cancel</Text>
+									</TouchableOpacity>
+									<Text style={styles.pickerTitle}>Select Due Date</Text>
+									<TouchableOpacity onPress={confirmDatePicker}>
+										<Text style={[styles.pickerButton, styles.confirmButton]}>Done</Text>
+									</TouchableOpacity>
+								</View>
+								<DateTimePicker
+									value={tempDate}
+									mode="date"
+									display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+									onChange={onDateChange}
+									style={styles.picker}
+								/>
+							</View>
+						</View>
+					</Modal>
 				)}
 			</View>
 		</Modal>
@@ -291,5 +362,59 @@ const styles = StyleSheet.create({
 	},
 	priorityButtonTextSelected: {
 		color: '#fff',
+	},
+	pickerModal: {
+		flex: 1,
+		justifyContent: 'flex-end',
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+	},
+	pickerContainer: {
+		backgroundColor: '#fff',
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+		paddingBottom: 34, // Safe area
+	},
+	pickerHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		padding: 16,
+		borderBottomWidth: 1,
+		borderBottomColor: '#e0e0e0',
+	},
+	pickerTitle: {
+		fontSize: 18,
+		fontWeight: '600',
+		color: '#333',
+	},
+	pickerButton: {
+		fontSize: 16,
+		color: '#007AFF',
+		fontWeight: '600',
+	},
+	confirmButton: {
+		fontWeight: 'bold',
+	},
+	picker: {
+		height: 200,
+	},
+	deleteButtonContainer: {
+		paddingTop: 20,
+		marginTop: 20,
+		borderTopWidth: 1,
+		borderTopColor: '#e0e0e0',
+	},
+	deleteButton: {
+		backgroundColor: '#FF3B30',
+		borderRadius: 8,
+		paddingVertical: 12,
+		paddingHorizontal: 16,
+		alignItems: 'center',
+		marginBottom: 20,
+	},
+	deleteButtonText: {
+		color: '#fff',
+		fontSize: 16,
+		fontWeight: '600',
 	},
 });

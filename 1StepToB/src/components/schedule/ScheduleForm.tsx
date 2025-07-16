@@ -34,13 +34,12 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 	const [isAllDay, setIsAllDay] = useState(false);
 	const [category, setCategory] = useState('');
 	const [color, setColor] = useState('#007AFF');
-	const [showDatePicker, setShowDatePicker] = useState(false);
-	const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-	const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+	const [pickerMode, setPickerMode] = useState<'date' | 'startTime' | 'endTime' | null>(null);
+	const [tempDate, setTempDate] = useState(new Date());
 
 	const colorOptions = [
-		'#007AFF', '#FF3B30', '#34C759', '#FFCC00',
-		'#FF9500', '#8E44AD', '#E91E63', '#795548'
+		'#007bff83', '#ff3a3089', '#34c75986', '#ffcc0087',
+		'#ff950083', '#8d44ad86', '#e91e628d', '#7955486d'
 	];
 
 	useEffect(() => {
@@ -100,40 +99,73 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 		onClose();
 	};
 
-	const onDateChange = (_event: any, selectedDate?: Date) => {
-		setShowDatePicker(false);
+	const openPicker = (mode: 'date' | 'startTime' | 'endTime') => {
+		let initialDate: Date;
+		
+		switch (mode) {
+			case 'date':
+				initialDate = startTime instanceof Date ? startTime : new Date(startTime);
+				break;
+			case 'startTime':
+				initialDate = startTime instanceof Date ? startTime : new Date(startTime);
+				break;
+			case 'endTime':
+				initialDate = endTime instanceof Date ? endTime : new Date(endTime);
+				break;
+		}
+		
+		setTempDate(initialDate);
+		setPickerMode(mode);
+	};
+
+	const onPickerChange = (_event: any, selectedDate?: Date) => {
 		if (selectedDate) {
-			const newStartTime = new Date(selectedDate);
-			newStartTime.setHours(startTime.getHours(), startTime.getMinutes());
-			setStartTime(newStartTime);
-
-			const newEndTime = new Date(selectedDate);
-			newEndTime.setHours(endTime.getHours(), endTime.getMinutes());
-			setEndTime(newEndTime);
+			setTempDate(selectedDate);
 		}
 	};
 
-	const onStartTimeChange = (_event: any, selectedTime?: Date) => {
-		setShowStartTimePicker(false);
-		if (selectedTime) {
-			const newStartTime = new Date(startTime);
-			newStartTime.setHours(selectedTime.getHours(), selectedTime.getMinutes());
-			setStartTime(newStartTime);
+	const confirmPicker = () => {
+		switch (pickerMode) {
+			case 'date':
+				const currentStart = startTime instanceof Date ? startTime : new Date(startTime);
+				const currentEnd = endTime instanceof Date ? endTime : new Date(endTime);
+				
+				const newStartTime = new Date(tempDate);
+				newStartTime.setHours(currentStart.getHours(), currentStart.getMinutes());
+				setStartTime(newStartTime);
 
-			if (newStartTime >= endTime) {
-				const newEndTime = new Date(newStartTime.getTime() + 60 * 60 * 1000);
+				const newEndTime = new Date(tempDate);
+				newEndTime.setHours(currentEnd.getHours(), currentEnd.getMinutes());
 				setEndTime(newEndTime);
-			}
+				break;
+				
+			case 'startTime':
+				const currentStartForTime = startTime instanceof Date ? startTime : new Date(startTime);
+				const currentEndForTime = endTime instanceof Date ? endTime : new Date(endTime);
+				
+				const newStart = new Date(currentStartForTime);
+				newStart.setHours(tempDate.getHours(), tempDate.getMinutes());
+				setStartTime(newStart);
+
+				if (newStart >= currentEndForTime) {
+					const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000);
+					setEndTime(newEnd);
+				}
+				break;
+				
+			case 'endTime':
+				const currentEndForEndTime = endTime instanceof Date ? endTime : new Date(endTime);
+				const newEnd = new Date(currentEndForEndTime);
+				newEnd.setHours(tempDate.getHours(), tempDate.getMinutes());
+				setEndTime(newEnd);
+				break;
 		}
+		
+		setPickerMode(null);
 	};
 
-	const onEndTimeChange = (_event: any, selectedTime?: Date) => {
-		setShowEndTimePicker(false);
-		if (selectedTime) {
-			const newEndTime = new Date(endTime);
-			newEndTime.setHours(selectedTime.getHours(), selectedTime.getMinutes());
-			setEndTime(newEndTime);
-		}
+	const cancelPicker = () => {
+		setPickerMode(null);
 	};
 
 	return (
@@ -198,49 +230,40 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Date</Text>
-						<View style={styles.dateButton}>
+						<TouchableOpacity
+							style={styles.dateButton}
+							onPress={() => openPicker('date')}
+						>
 							<Text style={styles.dateButtonText}>
-								📅
+								📅 {startTime instanceof Date ? startTime.toLocaleDateString() : new Date(startTime).toLocaleDateString()}
 							</Text>
-							<DateTimePicker
-								value={startTime instanceof Date ? startTime : new Date(startTime)}
-								mode="date"
-								display="default"
-								onChange={onDateChange}
-							/>
-						</View>
+						</TouchableOpacity>
 					</View>
 
 					{!isAllDay && (
 						<>
 							<View style={styles.inputGroup}>
 								<Text style={styles.label}>Start Time</Text>
-								<View style={styles.dateButton}>
+								<TouchableOpacity
+									style={styles.dateButton}
+									onPress={() => openPicker('startTime')}
+								>
 									<Text style={styles.dateButtonText}>
-										🕐
+										🕐 {startTime instanceof Date ? startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 									</Text>
-									<DateTimePicker
-										value={startTime instanceof Date ? startTime : new Date(startTime)}
-										mode="time"
-										display="default"
-										onChange={onStartTimeChange}
-									/>
-								</View>
+								</TouchableOpacity>
 							</View>
 
 							<View style={styles.inputGroup}>
 								<Text style={styles.label}>End Time</Text>
-								<View style={styles.dateButton}>
+								<TouchableOpacity
+									style={styles.dateButton}
+									onPress={() => openPicker('endTime')}
+								>
 									<Text style={styles.dateButtonText}>
-										🕐
+										🕐 {endTime instanceof Date ? endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date(endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 									</Text>
-									<DateTimePicker
-										value={endTime instanceof Date ? endTime : new Date(endTime)}
-										mode="time"
-										display="default"
-										onChange={onEndTimeChange}
-									/>
-								</View>
+								</TouchableOpacity>
 							</View>
 						</>
 					)}
@@ -273,7 +296,40 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 					</View>
 				</ScrollView>
 
-			</View>
+			{/* Unified Picker Modal */}
+			{pickerMode && (
+				<Modal
+					transparent={true}
+					animationType="slide"
+					visible={!!pickerMode}
+					onRequestClose={cancelPicker}
+				>
+					<View style={styles.pickerModal}>
+						<View style={styles.pickerContainer}>
+							<View style={styles.pickerHeader}>
+								<TouchableOpacity onPress={cancelPicker}>
+									<Text style={styles.pickerButton}>Cancel</Text>
+								</TouchableOpacity>
+								<Text style={styles.pickerTitle}>
+									{pickerMode === 'date' ? 'Select Date' : 
+									 pickerMode === 'startTime' ? 'Select Start Time' : 'Select End Time'}
+								</Text>
+								<TouchableOpacity onPress={confirmPicker}>
+									<Text style={[styles.pickerButton, styles.confirmButton]}>Done</Text>
+								</TouchableOpacity>
+							</View>
+							<DateTimePicker
+								value={tempDate}
+								mode={pickerMode === 'date' ? 'date' : 'time'}
+								display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+								onChange={onPickerChange}
+								style={styles.picker}
+							/>
+						</View>
+					</View>
+				</Modal>
+			)}
+		</View>
 		</Modal>
 	);
 });
@@ -343,22 +399,50 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 	},
 	dateButton: {
-		flex: 1,
-		flexDirection: 'row',
-		alignItems: 'center',
+		borderWidth: 1,
+		borderColor: '#e0e0e0',
+		borderRadius: 8,
 		padding: 12,
+		backgroundColor: '#fff',
 	},
 	dateButtonText: {
 		fontSize: 16,
 		color: '#333',
 	},
+	pickerModal: {
+		flex: 1,
+		justifyContent: 'flex-end',
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+	},
 	pickerContainer: {
-		marginTop: 8,
 		backgroundColor: '#fff',
-		borderRadius: 8,
-		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		overflow: 'hidden',
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+		paddingBottom: 34, // Safe area
+	},
+	pickerHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		padding: 16,
+		borderBottomWidth: 1,
+		borderBottomColor: '#e0e0e0',
+	},
+	pickerTitle: {
+		fontSize: 18,
+		fontWeight: '600',
+		color: '#333',
+	},
+	pickerButton: {
+		fontSize: 16,
+		color: '#007AFF',
+		fontWeight: '600',
+	},
+	confirmButton: {
+		fontWeight: 'bold',
+	},
+	picker: {
+		height: 200,
 	},
 	colorContainer: {
 		flexDirection: 'row',

@@ -13,27 +13,14 @@ import { formatDate, isOverdue, isToday, isTomorrow } from '../../utils/dateUtil
 interface TodoItemProps {
 	todo: Todo;
 	onToggleComplete: (id: string) => void;
-	onEdit: (todo: Todo) => void;
-	onDelete: (id: string) => void;
+	onPress?: () => void;
 }
 
 const TodoItem: React.FC<TodoItemProps> = React.memo(({
 	todo,
 	onToggleComplete,
-	onEdit,
-	onDelete,
+	onPress,
 }) => {
-	const handleDelete = () => {
-		Alert.alert(
-			'Delete Todo',
-			'Are you sure you want to delete this todo?',
-			[
-				{ text: 'Cancel', style: 'cancel' },
-				{ text: 'Delete', style: 'destructive', onPress: () => onDelete(todo.id) },
-			]
-		);
-	};
-
 	const getPriorityColor = (priority: TodoPriority) => {
 		switch (priority) {
 			case TodoPriority.URGENT: return '#FF3B30';
@@ -67,7 +54,11 @@ const TodoItem: React.FC<TodoItemProps> = React.memo(({
 				</View>
 			</TouchableOpacity>
 
-			<View style={styles.contentContainer}>
+			<TouchableOpacity
+				style={styles.contentContainer}
+				onPress={onPress}
+				activeOpacity={onPress ? 0.7 : 1}
+			>
 				<View style={styles.titleRow}>
 					<Text style={[styles.title, todo.completed && styles.completedText]}>
 						{todo.title}
@@ -98,16 +89,7 @@ const TodoItem: React.FC<TodoItemProps> = React.memo(({
 						🏷️ {todo.category}
 					</Text>
 				)}
-			</View>
-
-			<View style={styles.actionsContainer}>
-				<TouchableOpacity style={styles.editButton} onPress={() => onEdit(todo)}>
-					<Text style={styles.editButtonText}>Edit</Text>
-				</TouchableOpacity>
-				<TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-					<Text style={styles.deleteButtonText}>Delete</Text>
-				</TouchableOpacity>
-			</View>
+			</TouchableOpacity>
 		</View>
 	);
 });
@@ -120,14 +102,16 @@ const styles = StyleSheet.create({
 		alignItems: 'flex-start',
 		padding: 16,
 		backgroundColor: '#fff',
-		marginVertical: 4,
-		marginHorizontal: 16,
-		borderRadius: 12,
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
+		marginVertical: 0,
+		borderColor: '#333',
+		borderBottomWidth: 0.5,
+		// marginHorizontal: 16,
+		// borderRadius: 12,
+		// shadowColor: '#000',
+		// shadowOffset: { width: 0, height: 2 },
+		// shadowOpacity: 0.1,
+		// shadowRadius: 4,
+		// elevation: 3,
 	},
 	checkboxContainer: {
 		marginRight: 12,
@@ -201,36 +185,5 @@ const styles = StyleSheet.create({
 		color: '#fff',
 		fontSize: 10,
 		fontWeight: 'bold',
-	},
-	actionsContainer: {
-		flexDirection: 'column',
-		gap: 4,
-		marginLeft: 8,
-	},
-	editButton: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		backgroundColor: '#007AFF',
-		borderRadius: 6,
-		minWidth: 50,
-		alignItems: 'center',
-	},
-	editButtonText: {
-		color: '#fff',
-		fontSize: 12,
-		fontWeight: '600',
-	},
-	deleteButton: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		backgroundColor: '#FF3B30',
-		borderRadius: 6,
-		minWidth: 50,
-		alignItems: 'center',
-	},
-	deleteButtonText: {
-		color: '#fff',
-		fontSize: 12,
-		fontWeight: '600',
 	},
 });

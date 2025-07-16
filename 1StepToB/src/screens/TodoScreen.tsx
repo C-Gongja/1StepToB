@@ -7,78 +7,15 @@ import {
 	StyleSheet,
 	SafeAreaView,
 } from 'react-native';
-import { Todo, TodoFormData, TodoPriority } from '../types/Todo';
 import TodoItem from '../components/todo/TodoItem';
 import TodoForm from '../components/todo/TodoForm';
-import { generateId } from '../utils/dateUtils';
-import { useTodoStore } from '../stores/todoStore';
+import SwipeableCard from '../components/common/SwipeableCard';
+import { useTodoActions } from '../hooks/useTodoActions';
 
 export const TodoScreen: React.FC = () => {
-	const { todos, addTodo: addTodoToStore, updateTodo: updateTodoInStore, deleteTodo: deleteTodoFromStore } = useTodoStore();
-	const [showForm, setShowForm] = useState(false);
-	const [editingTodo, setEditingTodo] = useState<Todo | undefined>();
+	const { todos, showForm, editingTodo, handleEdit, handleDelete, handleToggleComplete, handleFormSubmit, handleFormClose, setShowForm } = useTodoActions();
 	const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
-	const addTodo = (data: TodoFormData) => {
-		const newTodo: Todo = {
-			id: generateId(),
-			title: data.title,
-			description: data.description,
-			completed: false,
-			createdAt: new Date(),
-			updatedAt: new Date(),
-			dueDate: data.dueDate,
-			priority: data.priority,
-			category: data.category,
-		};
-		addTodoToStore(newTodo);
-	};
-
-	const updateTodo = (data: TodoFormData) => {
-		if (!editingTodo) return;
-
-		updateTodoInStore(editingTodo.id, {
-			title: data.title,
-			description: data.description,
-			dueDate: data.dueDate,
-			priority: data.priority,
-			category: data.category,
-			updatedAt: new Date(),
-		});
-		setEditingTodo(undefined);
-	};
-
-	const toggleComplete = (id: string) => {
-		const todo = todos.find(t => t.id === id);
-		if (todo) {
-			updateTodoInStore(id, {
-				completed: !todo.completed,
-				updatedAt: new Date()
-			});
-		}
-	};
-
-	const deleteTodo = (id: string) => {
-		deleteTodoFromStore(id);
-	};
-
-	const handleFormSubmit = (data: TodoFormData) => {
-		if (editingTodo) {
-			updateTodo(data);
-		} else {
-			addTodo(data);
-		}
-	};
-
-	const handleEdit = (todo: Todo) => {
-		setEditingTodo(todo);
-		setShowForm(true);
-	};
-
-	const handleCloseForm = () => {
-		setShowForm(false);
-		setEditingTodo(undefined);
-	};
 
 	const getFilteredTodos = () => {
 		switch (filter) {
@@ -156,12 +93,23 @@ export const TodoScreen: React.FC = () => {
 					data={filteredTodos}
 					keyExtractor={item => item.id}
 					renderItem={({ item }) => (
-						<TodoItem
-							todo={item}
-							onToggleComplete={toggleComplete}
-							onEdit={handleEdit}
-							onDelete={deleteTodo}
-						/>
+						<SwipeableCard
+							key={item.id}
+							rightActions={[
+								{
+									icon: "Delete",
+									color: "#fff",
+									backgroundColor: "#FF3B30",
+									onPress: () => handleDelete(item.id)
+								}
+							]}
+						>
+							<TodoItem
+								todo={item}
+								onToggleComplete={handleToggleComplete}
+								onPress={() => handleEdit(item)}
+							/>
+						</SwipeableCard>
 					)}
 					contentContainerStyle={styles.listContainer}
 					showsVerticalScrollIndicator={false}
@@ -170,9 +118,10 @@ export const TodoScreen: React.FC = () => {
 
 			<TodoForm
 				visible={showForm}
-				onClose={handleCloseForm}
+				onClose={handleFormClose}
 				onSubmit={handleFormSubmit}
 				editingTodo={editingTodo}
+				onDelete={handleDelete}
 			/>
 		</SafeAreaView>
 	);

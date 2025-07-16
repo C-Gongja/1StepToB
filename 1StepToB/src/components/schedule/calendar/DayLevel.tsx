@@ -147,38 +147,34 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 		deleteItem(id);
 	};
 
-	const getScheduleItemStyle = (item: any) => {
+	const getScheduleItemData = (item: any) => {
 		const startHour = new Date(item.startTime).getHours();
 		const startMinute = new Date(item.startTime).getMinutes();
 		const endHour = new Date(item.endTime).getHours();
 		const endMinute = new Date(item.endTime).getMinutes();
 
-		console.log("startHour-startMinute: ", startHour, startMinute);
-		console.log("endHour-endMinute: ", endHour, endMinute);
-
 		const startTotalMinutes = startHour * 60 + startMinute;
-		console.log("startTotalMinutes: ", startTotalMinutes);
 		const endTotalMinutes = endHour * 60 + endMinute;
-		console.log("endTotalMinutes: ", endTotalMinutes);
 		const duration = endTotalMinutes - startTotalMinutes;
-		console.log("duration: ", duration);
 
 		const baseHourHeight = 60;
 		const scaledHourHeight = baseHourHeight * scale.value;
-		console.log("scaledHourHeight: ", scaledHourHeight);
 
 		const top = (startTotalMinutes / 60) * scaledHourHeight;
-		console.log("top: ", top);
-		const height = (duration / 60) * scaledHourHeight;
-		console.log("height: ", height);
+		const calculatedHeight = (duration / 60) * scaledHourHeight;
+		const finalHeight = Math.max(calculatedHeight, 30);
 
 		return {
-			position: 'absolute' as const,
-			top,
-			left: 65,
-			right: 16,
-			height: Math.max(height, 30),
-			zIndex: 5,
+			style: {
+				position: 'absolute' as const,
+				top,
+				left: 60,
+				right: 16,
+				height: finalHeight,
+				zIndex: 5,
+			},
+			containerHeight: finalHeight,
+			duration: duration
 		};
 	};
 
@@ -205,22 +201,27 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 								<View style={styles.timeLabel}>
 									<Text style={styles.timeText}>{formatHour(hour)}</Text>
 								</View>
-								{/* <View style={styles.eventArea}>
+								<View style={styles.eventArea}>
 									<View style={styles.hourLine} />
-								</View> */}
+								</View>
 							</Animated.View>
 						))}
 
 						{/* Schedule Items */}
-						{scheduleItems.map((item) => (
-							<View key={item.id} style={getScheduleItemStyle(item)}>
-								<DayScheduleItem
-									item={item}
-									onEdit={handleEditSchedule}
-									onDelete={handleDeleteSchedule}
-								/>
-							</View>
-						))}
+						{scheduleItems.map((item) => {
+							const itemData = getScheduleItemData(item);
+							return (
+								<View key={item.id} style={itemData.style}>
+									<DayScheduleItem
+										item={item}
+										onEdit={handleEditSchedule}
+										onDelete={handleDeleteSchedule}
+										containerHeight={itemData.containerHeight}
+										duration={itemData.duration}
+									/>
+								</View>
+							);
+						})}
 
 						{/* Current time indicator */}
 						{showCurrentTimeLine && (
@@ -288,15 +289,13 @@ const styles = StyleSheet.create({
 	},
 	hourRow: {
 		flexDirection: 'row',
-		borderBottomWidth: 0.5,
-		borderBottomColor: '#E5E5EA',
 	},
 	timeLabel: {
-		width: 80,
+		width: 60,
 		alignItems: 'center',
 		justifyContent: 'flex-start',
-		paddingTop: 8,
-		paddingRight: 16,
+		paddingTop: 0,
+		paddingRight: 0,
 	},
 	timeText: {
 		fontSize: 14,
@@ -307,14 +306,14 @@ const styles = StyleSheet.create({
 		flex: 1,
 		position: 'relative',
 	},
-	// hourLine: {
-	// 	position: 'absolute',
-	// 	top: 0,
-	// 	left: 0,
-	// 	right: 16,
-	// 	height: 0.5,
-	// 	backgroundColor: '#E5E5EA',
-	// },
+	hourLine: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 16,
+		height: 0.5,
+		backgroundColor: '#E5E5EA',
+	},
 	currentTimeLine: {
 		position: 'absolute',
 		left: 0,
@@ -328,14 +327,14 @@ const styles = StyleSheet.create({
 		height: 8,
 		borderRadius: 4,
 		backgroundColor: '#FF3B30',
-		marginLeft: 56,
+		marginLeft: 62,
 		marginRight: 4,
 	},
 	currentTimeBar: {
 		flex: 1,
 		height: 2,
 		backgroundColor: '#FF3B30',
-		marginRight: 16,
+		marginRight: 0,
 	},
 	currentTimeText: {
 		position: 'absolute',

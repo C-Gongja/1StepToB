@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
 	View,
 	Text,
@@ -6,62 +6,56 @@ import {
 	StyleSheet,
 	SafeAreaView,
 	ScrollView,
-	FlatList,
 } from 'react-native';
-import { Todo, ScheduledItem, TodoPriority, ScheduleFormData } from '../types/Todo';
-import { useTodoStore } from '../stores/todoStore';
+import { ScheduledItem, ScheduleFormData } from '../types/Todo';
 import { useScheduleStore } from '../stores/scheduleStore';
-import { formatDate, isToday, isTomorrow, isOverdue } from '../utils/dateUtils';
+import { isToday, isTomorrow, isOverdue } from '../utils/dateUtils';
 import ScheduleItem from '../components/schedule/ScheduleItem';
 import ScheduleForm from '../components/schedule/ScheduleForm';
+import TodoItem from '../components/todo/TodoItem';
+import TodoForm from '../components/todo/TodoForm';
+import { SwipeableCard } from '../components/common';
+import { useTodoActions } from '../hooks/useTodoActions';
 
 interface HomeScreenProps {
-	navigation?: any;
+	navigation?: {
+		navigate: (screen: string, params?: any) => void;
+	};
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-	const { todos } = useTodoStore();
+	const { todos, showForm, editingTodo, handleEdit, handleDelete, handleToggleComplete, handleFormSubmit, handleFormClose } = useTodoActions();
 	const { items: scheduledItems, updateItem, deleteItem } = useScheduleStore();
-	const [greeting, setGreeting] = useState('');
 	const [showScheduleForm, setShowScheduleForm] = useState(false);
 	const [editingScheduleItem, setEditingScheduleItem] = useState<ScheduledItem | undefined>();
 
-	useEffect(() => {
-		setGreeting(getGreeting());
-	}, []);
-
-	const getGreeting = (): string => {
+	const greeting = useMemo(() => {
 		const hour = new Date().getHours();
 		if (hour < 12) return 'Good Morning';
 		if (hour < 17) return 'Good Afternoon';
 		return 'Good Evening';
-	};
+	}, []);
 
-	const getTodaysTodos = () => {
-		return todos.filter(todo =>
+	const { todaysTodos, upcomingTodos, overdueTodos, todaysSchedule, stats } = useMemo(() => {
+		const now = new Date();
+		const todaysTodos = todos.filter(todo =>
 			!todo.completed &&
 			(todo.dueDate ? isToday(todo.dueDate) : false)
 		).slice(0, 3);
-	};
 
-	const getUpcomingTodos = () => {
-		return todos.filter(todo =>
+		const upcomingTodos = todos.filter(todo =>
 			!todo.completed &&
 			todo.dueDate &&
-			(isTomorrow(todo.dueDate) || todo.dueDate > new Date())
+			(isTomorrow(todo.dueDate) || todo.dueDate > now)
 		).slice(0, 3);
-	};
 
-	const getOverdueTodos = () => {
-		return todos.filter(todo =>
+		const overdueTodos = todos.filter(todo =>
 			!todo.completed &&
 			todo.dueDate &&
 			isOverdue(todo.dueDate)
 		).slice(0, 3);
-	};
 
-	const getTodaysSchedule = () => {
-		return scheduledItems.filter(item => {
+		const todaysSchedule = scheduledItems.filter(item => {
 			if (!item.startTime) return false;
 			const itemDate = new Date(item.startTime);
 			return !isNaN(itemDate.getTime()) && isToday(itemDate);
@@ -70,36 +64,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 			const dateB = new Date(b.startTime);
 			return dateA.getTime() - dateB.getTime();
 		}).slice(0, 3);
-	};
 
-	const getPriorityColor = (priority: TodoPriority) => {
-		switch (priority) {
-			case TodoPriority.URGENT: return '#FF3B30';
-			case TodoPriority.HIGH: return '#FF9500';
-			case TodoPriority.MEDIUM: return '#FFCC00';
-			case TodoPriority.LOW: return '#34C759';
-			default: return '#8E8E93';
-		}
-	};
+		const completedTodosCount = todos.filter(todo => todo.completed).length;
+		const pendingTodosCount = todos.length - completedTodosCount;
 
-	const getDueDateText = (dueDate: Date | undefined) => {
-		if (!dueDate) return null;
-		if (isToday(dueDate)) return 'Today';
-		if (isTomorrow(dueDate)) return 'Tomorrow';
-		if (isOverdue(dueDate)) return 'Overdue';
-		return formatDate(dueDate);
-	};
+		return {
+			todaysTodos,
+			upcomingTodos,
+			overdueTodos,
+			todaysSchedule,
+			stats: {
+				pendingTodosCount,
+				completedTodosCount,
+				todaysScheduleCount: todaysSchedule.length,
+			}
+		};
+	}, [todos, scheduledItems]);
 
-	const handleEditSchedule = (item: ScheduledItem) => {
+
+	const handleEditSchedule = useCallback((item: ScheduledItem) => {
 		setEditingScheduleItem(item);
 		setShowScheduleForm(true);
-	};
+	}, []);
 
-	const handleDeleteSchedule = (id: string) => {
+	const handleDeleteSchedule = useCallback((id: string) => {
 		deleteItem(id);
-	};
+	}, [deleteItem]);
 
-	const handleScheduleFormSubmit = (data: ScheduleFormData) => {
+	const handleScheduleFormSubmit = useCallback((data: ScheduleFormData) => {
 		if (editingScheduleItem) {
 			updateItem(editingScheduleItem.id, {
 				title: data.title,
@@ -111,18 +103,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 				color: data.color,
 			});
 		}
-		handleScheduleFormClose();
-	};
-
-	const handleScheduleFormClose = () => {
 		setShowScheduleForm(false);
 		setEditingScheduleItem(undefined);
-	};
+	}, [editingScheduleItem, updateItem]);
 
-	const completedTodosCount = todos.filter(todo => todo.completed).length;
-	const totalTodosCount = todos.length;
-	const pendingTodosCount = totalTodosCount - completedTodosCount;
-	const todaysScheduleCount = getTodaysSchedule().length;
+	const handleScheduleFormClose = useCallback(() => {
+		setShowScheduleForm(false);
+		setEditingScheduleItem(undefined);
+	}, []);
+
+
 
 	const QuickStatsCard = ({ title, value, subtitle, color }: {
 		title: string;
@@ -137,28 +127,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 		</View>
 	);
 
-	const TodoCard = ({ todo }: { todo: Todo }) => (
-		<View style={styles.todoCard}>
-			<View style={styles.todoCardContent}>
-				<Text style={styles.todoCardTitle} numberOfLines={1}>{todo.title}</Text>
-				<View style={styles.todoCardMeta}>
-					<View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(todo.priority) }]}>
-						<Text style={styles.priorityText}>{todo.priority.toUpperCase()}</Text>
-					</View>
-					{todo.dueDate && (
-						<Text style={[
-							styles.dueDateText,
-							isOverdue(todo.dueDate) && styles.overdueText
-						]}>
-							{getDueDateText(todo.dueDate)}
-						</Text>
-					)}
-				</View>
-			</View>
-		</View>
-	);
-
-
 	return (
 		<SafeAreaView style={styles.container}>
 			<ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -172,26 +140,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 				<View style={styles.statsContainer}>
 					<QuickStatsCard
 						title="Pending"
-						value={pendingTodosCount}
+						value={stats.pendingTodosCount}
 						subtitle="todos left"
 						color="#FF9500"
 					/>
 					<QuickStatsCard
 						title="Completed"
-						value={completedTodosCount}
+						value={stats.completedTodosCount}
 						subtitle="todos done"
 						color="#34C759"
 					/>
 					<QuickStatsCard
 						title="Today"
-						value={todaysScheduleCount}
+						value={stats.todaysScheduleCount}
 						subtitle="events"
 						color="#007AFF"
 					/>
 				</View>
 
 				{/* Overdue Todos */}
-				{getOverdueTodos().length > 0 && (
+				{overdueTodos.length > 0 && (
 					<View style={styles.section}>
 						<View style={styles.sectionHeader}>
 							<Text style={[styles.sectionTitle, { color: '#FF3B30' }]}>⚠️ Overdue</Text>
@@ -199,14 +167,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 								<Text style={styles.seeAllText}>See All</Text>
 							</TouchableOpacity>
 						</View>
-						{getOverdueTodos().map((todo) => (
-							<TodoCard key={todo.id} todo={todo} />
+						{overdueTodos.map((todo) => (
+							<TodoItem
+								key={todo.id}
+								todo={todo}
+								onToggleComplete={handleToggleComplete}
+								onPress={() => handleEdit(todo)}
+							/>
 						))}
 					</View>
 				)}
 
 				{/* Today's Todos */}
-				{getTodaysTodos().length > 0 && (
+				{todaysTodos.length > 0 && (
 					<View style={styles.section}>
 						<View style={styles.sectionHeader}>
 							<Text style={styles.sectionTitle}>📝 Today's Todos</Text>
@@ -214,14 +187,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 								<Text style={styles.seeAllText}>See All</Text>
 							</TouchableOpacity>
 						</View>
-						{getTodaysTodos().map((todo) => (
-							<TodoCard key={todo.id} todo={todo} />
+						{todaysTodos.map((todo) => (
+							<SwipeableCard
+								key={todo.id}
+								rightActions={[
+									{
+										icon: "Delete",
+										color: "#fff",
+										backgroundColor: "#FF3B30",
+										onPress: () => handleDelete(todo.id)
+									}
+								]}
+							>
+								<TodoItem
+									todo={todo}
+									onToggleComplete={handleToggleComplete}
+									onPress={() => handleEdit(todo)}
+								/>
+							</SwipeableCard>
 						))}
 					</View>
 				)}
 
 				{/* Today's Schedule */}
-				{getTodaysSchedule().length > 0 && (
+				{todaysSchedule.length > 0 && (
 					<View style={styles.section}>
 						<View style={styles.sectionHeader}>
 							<Text style={styles.sectionTitle}>📅 Today's Schedule</Text>
@@ -230,20 +219,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 								<Text style={styles.seeAllText}>See All</Text>
 							</TouchableOpacity>
 						</View>
-						{getTodaysSchedule().map((item) => (
+						{todaysSchedule.map((item) => (
 							<ScheduleItem
 								key={item.id}
 								item={item}
 								onEdit={handleEditSchedule}
 								onDelete={handleDeleteSchedule}
 							/>
-							// <ScheduleCard key={item.id} item={item} />
 						))}
 					</View>
 				)}
 
 				{/* Upcoming Todos */}
-				{getUpcomingTodos().length > 0 && (
+				{upcomingTodos.length > 0 && (
 					<View style={styles.section}>
 						<View style={styles.sectionHeader}>
 							<Text style={styles.sectionTitle}>📋 Upcoming</Text>
@@ -251,8 +239,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 								<Text style={styles.seeAllText}>See All</Text>
 							</TouchableOpacity>
 						</View>
-						{getUpcomingTodos().map((todo) => (
-							<TodoCard key={todo.id} todo={todo} />
+						{upcomingTodos.map((todo) => (
+							<TodoItem
+								key={todo.id}
+								todo={todo}
+								onToggleComplete={handleToggleComplete}
+								onPress={() => handleEdit(todo)}
+							/>
 						))}
 					</View>
 				)}
@@ -282,24 +275,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 						</View>
 					</View>
 				)}
-
-				{/* Quick Actions */}
-				<View style={styles.quickActions}>
-					<TouchableOpacity
-						style={styles.quickActionButton}
-						onPress={() => navigation?.navigate('Todos')}
-					>
-						<Text style={styles.quickActionIcon}>✓</Text>
-						<Text style={styles.quickActionText}>Add Todo</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						style={styles.quickActionButton}
-						onPress={() => navigation?.navigate('Schedule')}
-					>
-						<Text style={styles.quickActionIcon}>📅</Text>
-						<Text style={styles.quickActionText}>Schedule</Text>
-					</TouchableOpacity>
-				</View>
 			</ScrollView>
 
 			<ScheduleForm
@@ -307,6 +282,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 				onClose={handleScheduleFormClose}
 				onSubmit={handleScheduleFormSubmit}
 				editingItem={editingScheduleItem}
+			/>
+
+			<TodoForm
+				visible={showForm}
+				onClose={handleFormClose}
+				onSubmit={handleFormSubmit}
+				editingTodo={editingTodo}
+				onDelete={handleDelete}
 			/>
 		</SafeAreaView>
 	);
@@ -370,18 +353,20 @@ const styles = StyleSheet.create({
 	},
 	section: {
 		marginTop: 16,
+		paddingTop: 16,
 		backgroundColor: '#fff',
-		paddingHorizontal: 16,
-		paddingVertical: 12,
+		// paddingVertical: 12,
 	},
 	sectionHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		marginBottom: 12,
+		paddingHorizontal: 16,
+		paddingBottom: 16,
+		borderBottomWidth: 0.5,
 	},
 	sectionTitle: {
-		fontSize: 18,
+		fontSize: 24,
 		fontWeight: 'bold',
 		color: '#333',
 	},
@@ -389,48 +374,6 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: '#007AFF',
 		fontWeight: '600',
-	},
-	todoCard: {
-		backgroundColor: '#f9f9f9',
-		borderRadius: 8,
-		padding: 12,
-		marginBottom: 8,
-		borderLeftWidth: 3,
-		borderLeftColor: '#007AFF',
-	},
-	todoCardContent: {
-		flex: 1,
-	},
-	todoCardTitle: {
-		fontSize: 16,
-		fontWeight: '600',
-		color: '#333',
-		marginBottom: 6,
-	},
-	todoCardMeta: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 8,
-	},
-	priorityBadge: {
-		paddingHorizontal: 6,
-		paddingVertical: 2,
-		borderRadius: 4,
-		minWidth: 40,
-		alignItems: 'center',
-	},
-	priorityText: {
-		color: '#fff',
-		fontSize: 10,
-		fontWeight: 'bold',
-	},
-	dueDateText: {
-		fontSize: 12,
-		color: '#666',
-		fontWeight: '600',
-	},
-	overdueText: {
-		color: '#FF3B30',
 	},
 	emptyState: {
 		padding: 40,
@@ -473,32 +416,5 @@ const styles = StyleSheet.create({
 	},
 	emptyButtonTextSecondary: {
 		color: '#007AFF',
-	},
-	quickActions: {
-		flexDirection: 'row',
-		padding: 16,
-		gap: 12,
-		marginBottom: 20,
-	},
-	quickActionButton: {
-		flex: 1,
-		backgroundColor: '#007AFF',
-		borderRadius: 12,
-		padding: 16,
-		alignItems: 'center',
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-	quickActionIcon: {
-		fontSize: 24,
-		marginBottom: 4,
-	},
-	quickActionText: {
-		color: '#fff',
-		fontSize: 14,
-		fontWeight: '600',
 	},
 });
