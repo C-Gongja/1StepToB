@@ -8,6 +8,11 @@ import {
 	Dimensions,
 } from 'react-native';
 import { getMiniCalendarDays, getMonthNames, isToday as isTodayUtil } from '../../utils/dateUtils';
+import Animated, {
+	useSharedValue,
+	useAnimatedStyle,
+	withSpring
+} from 'react-native-reanimated';
 
 interface YearLevelProps {
 	currentYear: number;
@@ -27,7 +32,7 @@ const YearLevel: React.FC<YearLevelProps> = React.memo(({
 
 	const yearsToShow = useMemo(() => {
 		const years = [];
-		for (let i = currentYear - 2; i <= currentYear + 2; i++) {
+		for (let i = currentYear - 1; i <= currentYear + 1; i++) {
 			years.push(i);
 		}
 		return years;
@@ -37,45 +42,70 @@ const YearLevel: React.FC<YearLevelProps> = React.memo(({
 
 	const renderMiniCalendar = useCallback((year: number, month: number) => {
 		const days = getMiniCalendarDays(year, month);
+		const scale = useSharedValue(1);
+
+		const animatedStyle = useAnimatedStyle(() => ({
+			transform: [{ scale: scale.value }],
+		}));
+
+		const handlePressIn = () => {
+			scale.value = withSpring(0.95, {
+				damping: 15,
+				stiffness: 300,
+			});
+		};
+
+		const handlePressOut = () => {
+			scale.value = withSpring(1, {
+				damping: 15,
+				stiffness: 300,
+			});
+		};
 
 		return (
 			<TouchableOpacity
 				key={`${year}-${month}`}
 				style={styles.monthContainer}
 				onPress={() => onMonthPress(year, month)}
-				activeOpacity={0.7}
+				onPressIn={handlePressIn}
+				onPressOut={handlePressOut}
+				activeOpacity={1}
 			>
-				<Text style={styles.monthName}>
-					{monthNames[month].slice(0, 3)}
-				</Text>
+				<Animated.View
+					style={[styles.calendarContent, animatedStyle]}
+				>
+					<Text style={styles.monthName}>
+						{monthNames[month].slice(0, 3)}
+					</Text>
 
-				{/* Day headers */}
-				<View style={styles.dayHeaders}>
-					{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-						<Text key={index} style={styles.dayHeader}>{day}</Text>
-					))}
-				</View>
+					{/* Day headers */}
+					<View style={styles.dayHeaders}>
+						{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+							<Text key={index} style={styles.dayHeader}>{day}</Text>
+						))}
+					</View>
 
-				{/* Calendar grid */}
-				<View style={styles.calendarGrid}>
-					{days.map((date, index) => (
-						<View key={index} style={styles.dayCell}>
-							{date && (
-								<View style={[
-									styles.dayNumber,
-									isTodayUtil(date) && styles.todayNumber
-								]}>
-									<Text style={[
-										styles.dayText,
-										isTodayUtil(date) && styles.todayText
+					{/* Calendar grid */}
+					<View style={styles.calendarGrid}>
+						{days.map((date, index) => (
+							<View key={index} style={styles.dayCell}>
+								{date && (
+									<View style={[
+										styles.dayNumber,
+										isTodayUtil(date) && styles.todayNumber
 									]}>
-										{date.getDate()}
-									</Text>
-								</View>
-							)}
-						</View>
-					))}
-				</View>
+										<Text style={[
+											styles.dayText,
+											isTodayUtil(date) && styles.todayText
+										]}>
+											{date.getDate()}
+										</Text>
+									</View>
+								)}
+							</View>
+						))}
+					</View>
+				</Animated.View>
 			</TouchableOpacity>
 		);
 	}, [monthNames, onMonthPress]);
@@ -89,12 +119,12 @@ const YearLevel: React.FC<YearLevelProps> = React.memo(({
 		// Auto-scroll to current year when positions are available
 		if (shouldScrollToCurrentYear && yearPositions[currentYear] !== undefined) {
 			const scrollToPosition = yearPositions[currentYear];
-			
+
 			scrollViewRef.current?.scrollTo({
 				y: scrollToPosition,
 				animated: false
 			});
-			
+
 			setShouldScrollToCurrentYear(false);
 		}
 	}, [currentYear, yearPositions, shouldScrollToCurrentYear]);
@@ -178,14 +208,19 @@ const styles = StyleSheet.create({
 	monthContainer: {
 		width: monthWidth,
 		marginBottom: 16,
-		backgroundColor: '#fff',
+		// backgroundColor: '#fff',
 		borderRadius: 8,
-		padding: 8,
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.1,
-		shadowRadius: 2,
+		// shadowColor: '#000',
+		// shadowOffset: { width: 0, height: 1 },
+		// shadowOpacity: 0.1,
+		// shadowRadius: 2,
 		elevation: 2,
+	},
+	calendarContent: {
+		flex: 1,
+		backgroundColor: '',
+		borderRadius: 8,
+		padding: 4,
 	},
 	monthName: {
 		fontSize: 14,
@@ -196,14 +231,14 @@ const styles = StyleSheet.create({
 	},
 	dayHeaders: {
 		flexDirection: 'row',
-		justifyContent: 'space-around',
+		flexWrap: 'wrap',
 		marginBottom: 4,
 	},
 	dayHeader: {
 		fontSize: 10,
 		color: '#8E8E93',
 		fontWeight: '500',
-		width: 14,
+		width: '14.28%', // Match calendarGrid width
 		textAlign: 'center',
 	},
 	calendarGrid: {

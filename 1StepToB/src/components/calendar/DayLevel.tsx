@@ -13,6 +13,8 @@ import Animated, {
 	withSpring,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useScheduleStore } from '../../stores/scheduleStore';
+import ScheduleItem from '../ScheduleItem';
 
 interface DayLevelProps {
 	currentDate: Date;
@@ -24,6 +26,8 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 	const [currentTime, setCurrentTime] = useState(new Date());
 	const { width, height } = Dimensions.get('window');
 	const scrollViewRef = useRef<ScrollView>(null);
+	const { getItemsByDate, updateItem, deleteItem } = useScheduleStore();
+	const scheduleItems = getItemsByDate(currentDate);
 
 	// Zoom 기능을 위한 상태
 	const scale = useSharedValue(1);
@@ -133,6 +137,42 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 		});
 	};
 
+
+	const handleEditSchedule = (item: any) => {
+		// TODO: Implement edit functionality
+		console.log('Edit schedule:', item);
+	};
+
+	const handleDeleteSchedule = (id: string) => {
+		deleteItem(id);
+	};
+
+	const getScheduleItemStyle = (item: any) => {
+		const startHour = item.startTime.getHours();
+		const startMinute = item.startTime.getMinutes();
+		const endHour = item.endTime.getHours();
+		const endMinute = item.endTime.getMinutes();
+		
+		const startTotalMinutes = startHour * 60 + startMinute;
+		const endTotalMinutes = endHour * 60 + endMinute;
+		const duration = endTotalMinutes - startTotalMinutes;
+		
+		const baseHourHeight = 80;
+		const scaledHourHeight = baseHourHeight * scale.value;
+		
+		const top = (startTotalMinutes / 60) * scaledHourHeight;
+		const height = (duration / 60) * scaledHourHeight;
+		
+		return {
+			position: 'absolute' as const,
+			top,
+			left: 85,
+			right: 16,
+			height: Math.max(height, 30),
+			zIndex: 5,
+		};
+	};
+
 	const hours = generateHours();
 	const showCurrentTimeLine = isToday(currentDate);
 
@@ -160,6 +200,17 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 									<View style={styles.hourLine} />
 								</View>
 							</Animated.View>
+						))}
+
+						{/* Schedule Items */}
+						{scheduleItems.map((item) => (
+							<View key={item.id} style={getScheduleItemStyle(item)}>
+								<ScheduleItem
+									item={item}
+									onEdit={handleEditSchedule}
+									onDelete={handleDeleteSchedule}
+								/>
+							</View>
 						))}
 
 						{/* Current time indicator */}

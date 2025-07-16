@@ -8,6 +8,7 @@ import {
 	Dimensions,
 } from 'react-native';
 import { getDaysInMonth, getMonthNames, isToday, isSameMonth } from '../../utils/dateUtils';
+import Animated from 'react-native-reanimated';
 
 interface MonthLevelProps {
 	currentDate: Date;
@@ -29,6 +30,7 @@ const MonthLevel: React.FC<MonthLevelProps> = React.memo(({
 	const { width, height } = Dimensions.get('window');
 	const [monthPositions, setMonthPositions] = useState<Record<number, number>>({});
 	const [shouldScrollToCurrentMonth, setShouldScrollToCurrentMonth] = useState(true);
+	const [isInitialMount, setIsInitialMount] = useState(true);
 
 	const monthNames = useMemo(() => getMonthNames(), []);
 
@@ -47,35 +49,44 @@ const MonthLevel: React.FC<MonthLevelProps> = React.memo(({
 		});
 	}, [year]);
 
+	// Calculate initial scroll position based on selected month (only once)
+	const initialScrollY = useMemo(() => {
+		const targetMonth = currentDate.getMonth();
+		return targetMonth * height;
+	}, [height]); // Remove currentDate dependency
+
 	// shouldScrollToToday가 true일 때만 스크롤이 필요하다고 표시
 	useEffect(() => {
 		if (shouldScrollToToday) {
 			setShouldScrollToCurrentMonth(true);
+			setIsInitialMount(false); // Ensure it's not treated as initial mount
 		}
 	}, [shouldScrollToToday]);
 
 	useEffect(() => {
 		// Auto-scroll to current month when positions are available
+		// Only on initial mount or when "Today" button is clicked
 		const currentMonth = currentDate.getMonth();
-		if (shouldScrollToCurrentMonth && monthPositions[currentMonth] !== undefined) {
+		if (shouldScrollToCurrentMonth && monthPositions[currentMonth] !== undefined && (isInitialMount || shouldScrollToToday)) {
 			const scrollToPosition = monthPositions[currentMonth];
 
 			// Use setTimeout to ensure ScrollView is ready
 			setTimeout(() => {
 				scrollViewRef.current?.scrollTo({
 					y: scrollToPosition,
-					animated: true // Today 버튼 클릭 시 부드럽게 애니메이션
+					animated: isInitialMount ? false : true // Smooth animation for "Today" button
 				});
-				
+
 				// Call completion callback after scroll animation
 				setTimeout(() => {
 					onScrollToTodayComplete?.();
-				}, 300); // Wait for animation to complete
+				}, 100);
 			}, 50);
 
 			setShouldScrollToCurrentMonth(false);
+			setIsInitialMount(false);
 		}
-	}, [monthPositions, shouldScrollToCurrentMonth, currentDate, onScrollToTodayComplete]);
+	}, [monthPositions, shouldScrollToCurrentMonth, currentDate, onScrollToTodayComplete, isInitialMount, shouldScrollToToday]);
 
 	const handleMonthLayout = (month: number, event: any) => {
 		const { y } = event.nativeEvent.layout;
@@ -163,7 +174,7 @@ const MonthLevel: React.FC<MonthLevelProps> = React.memo(({
 		}, [days]);
 
 		return (
-			<View
+			<Animated.View
 				key={month}
 				style={[
 					styles.monthSection,
@@ -184,35 +195,33 @@ const MonthLevel: React.FC<MonthLevelProps> = React.memo(({
 						renderWeek(weekDays, weekIndex, month, weeksInMonth)
 					)}
 				</View>
-			</View>
+			</Animated.View>
 		);
-	}, [currentDate, height, width, monthNames, renderWeek, handleMonthLayout]);
+	}, [currentDate, height, width, monthNames, renderWeek, handleMonthLayout, year]);
+
+	const currentMonth = currentDate.getMonth();
 
 	return (
-		<View style={styles.container}>
-			<ScrollView
-				ref={scrollViewRef}
-				style={styles.scrollView}
-				showsVerticalScrollIndicator={false}
-				contentInsetAdjustmentBehavior="automatic"
-				onScroll={handleScroll}
-				scrollEventThrottle={100}
-			>
-				{monthsData.map(renderMonth)}
-			</ScrollView>
-		</View>
+		<ScrollView
+			ref={scrollViewRef}
+			style={styles.scrollView}
+			showsVerticalScrollIndicator={false}
+			contentInsetAdjustmentBehavior="automatic"
+			onScroll={handleScroll}
+			scrollEventThrottle={100}
+			contentOffset={{ x: 0, y: initialScrollY }}
+		>
+			{monthsData.map(renderMonth)}
+		</ScrollView>
 	);
 });
 
 export default MonthLevel;
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#fff',
-	},
 	scrollView: {
 		flex: 1,
+		backgroundColor: '#fff',
 	},
 	monthSection: {
 		paddingHorizontal: 16,

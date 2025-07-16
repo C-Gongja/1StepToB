@@ -11,6 +11,7 @@ import ScheduleForm from '../components/ScheduleForm';
 import { generateId } from '../utils/dateUtils';
 import { useScheduleStore } from '../stores/scheduleStore';
 import Calendar from '../components/calendar/Calendar';
+import FloatingActionButton from '../components/FloatingActionButton';
 
 export const ScheduleScreen: React.FC = () => {
 	const { items, addItem: addItemToStore, updateItem: updateItemInStore } = useScheduleStore();
@@ -70,9 +71,18 @@ export const ScheduleScreen: React.FC = () => {
 		setShowForm(true);
 	};
 
+	const handleFloatingButtonPress = () => {
+		setEditingItem(undefined);
+		setShowForm(true);
+	};
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<Calendar />
+
+			<FloatingActionButton
+				onPress={handleFloatingButtonPress}
+			/>
 
 			<ScheduleForm
 				visible={showForm}

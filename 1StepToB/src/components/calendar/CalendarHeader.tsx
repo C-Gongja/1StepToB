@@ -29,6 +29,10 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = React.memo(({
 		if (title) return title;
 
 		switch (viewLevel) {
+			case 'year':
+				return currentDate.toLocaleDateString('en-US', {
+					year: 'numeric',
+				});
 			case 'month':
 				return currentDate.toLocaleDateString('en-US', {
 					month: 'short',
