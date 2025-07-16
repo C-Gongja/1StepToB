@@ -6,8 +6,8 @@ import Animated from 'react-native-reanimated';
 import DayLevel from '../DayLevel';
 import CalendarHeader from '../CalendarHeader';
 import ScheduleForm from '../../ScheduleForm';
-import { useScheduleStore } from '../../../stores/scheduleStore';
-import { ScheduleFormData, ScheduledItem } from '../../../types/Todo';
+import { useScheduleStore } from '../../../../stores/scheduleStore';
+import { ScheduleFormData, ScheduledItem } from '../../../../types/Todo';
 
 type CalendarStackParamList = {
 	Year: { currentDateTimestamp: number };

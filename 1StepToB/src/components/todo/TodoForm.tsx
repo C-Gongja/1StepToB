@@ -10,7 +10,8 @@ import {
 	Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Todo, TodoFormData, TodoPriority } from '../types/Todo';
+import { TodoFormData, Todo, TodoPriority } from '../../types/Todo';
+
 
 interface TodoFormProps {
 	visible: boolean;

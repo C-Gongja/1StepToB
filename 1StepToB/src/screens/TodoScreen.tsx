@@ -8,8 +8,8 @@ import {
 	SafeAreaView,
 } from 'react-native';
 import { Todo, TodoFormData, TodoPriority } from '../types/Todo';
-import TodoItem from '../components/TodoItem';
-import TodoForm from '../components/TodoForm';
+import TodoItem from '../components/todo/TodoItem';
+import TodoForm from '../components/todo/TodoForm';
 import { generateId } from '../utils/dateUtils';
 import { useTodoStore } from '../stores/todoStore';
 
@@ -51,9 +51,9 @@ export const TodoScreen: React.FC = () => {
 	const toggleComplete = (id: string) => {
 		const todo = todos.find(t => t.id === id);
 		if (todo) {
-			updateTodoInStore(id, { 
-				completed: !todo.completed, 
-				updatedAt: new Date() 
+			updateTodoInStore(id, {
+				completed: !todo.completed,
+				updatedAt: new Date()
 			});
 		}
 	};

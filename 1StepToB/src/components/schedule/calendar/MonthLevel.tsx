@@ -7,7 +7,7 @@ import {
 	ScrollView,
 	Dimensions,
 } from 'react-native';
-import { getDaysInMonth, getMonthNames, isToday, isSameMonth } from '../../utils/dateUtils';
+import { getDaysInMonth, getMonthNames, isToday, isSameMonth } from '../../../utils/dateUtils';
 import Animated from 'react-native-reanimated';
 
 interface MonthLevelProps {
@@ -81,7 +81,7 @@ const MonthLevel: React.FC<MonthLevelProps> = React.memo(({
 				setTimeout(() => {
 					onScrollToTodayComplete?.();
 				}, 100);
-			}, 50);
+			}, 0);
 
 			setShouldScrollToCurrentMonth(false);
 			setIsInitialMount(false);

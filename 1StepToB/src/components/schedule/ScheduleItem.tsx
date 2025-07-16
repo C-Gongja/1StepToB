@@ -6,8 +6,8 @@ import {
 	StyleSheet,
 	Alert,
 } from 'react-native';
-import { ScheduledItem } from '../types/Todo';
-import { formatTime } from '../utils/dateUtils';
+import { ScheduledItem } from '../../types/Todo';
+import { formatTime } from '../../utils/dateUtils';
 
 interface ScheduleItemProps {
 	item: ScheduledItem;
@@ -20,6 +20,7 @@ const ScheduleItem: React.FC<ScheduleItemProps> = React.memo(({
 	onEdit,
 	onDelete,
 }) => {
+
 	const handleDelete = () => {
 		Alert.alert(
 			'Delete Schedule Item',
@@ -41,20 +42,21 @@ const ScheduleItem: React.FC<ScheduleItemProps> = React.memo(({
 	return (
 		<View style={[
 			styles.container,
-			{ borderLeftColor: item.color || '#007AFF' }
+			{ backgroundColor: item.color }
 		]}>
-			<View style={styles.timeContainer}>
-				<Text style={styles.timeText}>{getTimeText()}</Text>
-			</View>
-
-			<View style={styles.contentContainer}>
-				<Text style={styles.title}>{item.title}</Text>
-				{item.description && (
-					<Text style={styles.description}>{item.description}</Text>
-				)}
-				{item.category && (
-					<Text style={styles.category}>🏷️ {item.category}</Text>
-				)}
+			<View style={{ flexDirection: 'column' }}>
+				<View style={styles.contentContainer}>
+					<Text style={styles.title}>{item.title}</Text>
+					{item.description && (
+						<Text style={styles.description}>{item.description}</Text>
+					)}
+					{item.category && (
+						<Text style={styles.category}>🏷️ {item.category}</Text>
+					)}
+				</View>
+				<View style={styles.timeContainer}>
+					<Text style={styles.timeText}>{getTimeText()}</Text>
+				</View>
 			</View>
 
 			<View style={styles.actionsContainer}>
@@ -74,17 +76,18 @@ export default ScheduleItem;
 const styles = StyleSheet.create({
 	container: {
 		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
 		backgroundColor: '#fff',
 		marginVertical: 4,
 		marginHorizontal: 16,
 		borderRadius: 12,
-		borderLeftWidth: 4,
 		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.1,
 		shadowRadius: 4,
 		elevation: 3,
-		padding: 16,
+		padding: 12,
 	},
 	timeContainer: {
 		minWidth: 80,
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
 	editButton: {
 		paddingHorizontal: 12,
 		paddingVertical: 6,
-		backgroundColor: '#007AFF',
+		backgroundColor: '#a3a3a3',
 		borderRadius: 6,
 		minWidth: 50,
 		alignItems: 'center',

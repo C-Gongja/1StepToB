@@ -7,7 +7,7 @@ import {
 	ScrollView,
 	Dimensions,
 } from 'react-native';
-import { getMiniCalendarDays, getMonthNames, isToday as isTodayUtil } from '../../utils/dateUtils';
+import { getMiniCalendarDays, getMonthNames, isToday as isTodayUtil } from '../../../utils/dateUtils';
 import Animated, {
 	useSharedValue,
 	useAnimatedStyle,

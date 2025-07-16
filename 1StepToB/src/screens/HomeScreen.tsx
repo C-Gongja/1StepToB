@@ -8,10 +8,12 @@ import {
 	ScrollView,
 	FlatList,
 } from 'react-native';
-import { Todo, ScheduledItem, TodoPriority } from '../types/Todo';
+import { Todo, ScheduledItem, TodoPriority, ScheduleFormData } from '../types/Todo';
 import { useTodoStore } from '../stores/todoStore';
 import { useScheduleStore } from '../stores/scheduleStore';
-import { formatDate, formatTime, isToday, isTomorrow, isOverdue } from '../utils/dateUtils';
+import { formatDate, isToday, isTomorrow, isOverdue } from '../utils/dateUtils';
+import ScheduleItem from '../components/schedule/ScheduleItem';
+import ScheduleForm from '../components/schedule/ScheduleForm';
 
 interface HomeScreenProps {
 	navigation?: any;
@@ -19,8 +21,10 @@ interface HomeScreenProps {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 	const { todos } = useTodoStore();
-	const { items: scheduledItems } = useScheduleStore();
+	const { items: scheduledItems, updateItem, deleteItem } = useScheduleStore();
 	const [greeting, setGreeting] = useState('');
+	const [showScheduleForm, setShowScheduleForm] = useState(false);
+	const [editingScheduleItem, setEditingScheduleItem] = useState<ScheduledItem | undefined>();
 
 	useEffect(() => {
 		setGreeting(getGreeting());
@@ -58,9 +62,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
 	const getTodaysSchedule = () => {
 		return scheduledItems.filter(item => {
+			if (!item.startTime) return false;
 			const itemDate = new Date(item.startTime);
-			return isToday(itemDate);
-		}).sort((a, b) => a.startTime.getTime() - b.startTime.getTime()).slice(0, 3);
+			return !isNaN(itemDate.getTime()) && isToday(itemDate);
+		}).sort((a, b) => {
+			const dateA = new Date(a.startTime);
+			const dateB = new Date(b.startTime);
+			return dateA.getTime() - dateB.getTime();
+		}).slice(0, 3);
 	};
 
 	const getPriorityColor = (priority: TodoPriority) => {
@@ -79,6 +88,35 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 		if (isTomorrow(dueDate)) return 'Tomorrow';
 		if (isOverdue(dueDate)) return 'Overdue';
 		return formatDate(dueDate);
+	};
+
+	const handleEditSchedule = (item: ScheduledItem) => {
+		setEditingScheduleItem(item);
+		setShowScheduleForm(true);
+	};
+
+	const handleDeleteSchedule = (id: string) => {
+		deleteItem(id);
+	};
+
+	const handleScheduleFormSubmit = (data: ScheduleFormData) => {
+		if (editingScheduleItem) {
+			updateItem(editingScheduleItem.id, {
+				title: data.title,
+				description: data.description,
+				startTime: data.startTime,
+				endTime: data.endTime,
+				isAllDay: data.isAllDay,
+				category: data.category,
+				color: data.color,
+			});
+		}
+		handleScheduleFormClose();
+	};
+
+	const handleScheduleFormClose = () => {
+		setShowScheduleForm(false);
+		setEditingScheduleItem(undefined);
 	};
 
 	const completedTodosCount = todos.filter(todo => todo.completed).length;
@@ -120,17 +158,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 		</View>
 	);
 
-	const ScheduleCard = ({ item }: { item: ScheduledItem }) => (
-		<View style={[styles.scheduleCard, { borderLeftColor: item.color || '#007AFF' }]}>
-			<Text style={styles.scheduleTime}>
-				{item.isAllDay ? 'All day' : formatTime(item.startTime)}
-			</Text>
-			<Text style={styles.scheduleTitle} numberOfLines={1}>{item.title}</Text>
-			{item.category && (
-				<Text style={styles.scheduleCategory}>{item.category}</Text>
-			)}
-		</View>
-	);
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -198,12 +225,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 					<View style={styles.section}>
 						<View style={styles.sectionHeader}>
 							<Text style={styles.sectionTitle}>📅 Today's Schedule</Text>
+							{/* schedule의 day로 navigate */}
 							<TouchableOpacity onPress={() => navigation?.navigate('Schedule')}>
 								<Text style={styles.seeAllText}>See All</Text>
 							</TouchableOpacity>
 						</View>
 						{getTodaysSchedule().map((item) => (
-							<ScheduleCard key={item.id} item={item} />
+							<ScheduleItem
+								key={item.id}
+								item={item}
+								onEdit={handleEditSchedule}
+								onDelete={handleDeleteSchedule}
+							/>
+							// <ScheduleCard key={item.id} item={item} />
 						))}
 					</View>
 				)}
@@ -267,6 +301,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
+
+			<ScheduleForm
+				visible={showScheduleForm}
+				onClose={handleScheduleFormClose}
+				onSubmit={handleScheduleFormSubmit}
+				editingItem={editingScheduleItem}
+			/>
 		</SafeAreaView>
 	);
 };
@@ -390,29 +431,6 @@ const styles = StyleSheet.create({
 	},
 	overdueText: {
 		color: '#FF3B30',
-	},
-	scheduleCard: {
-		backgroundColor: '#f9f9f9',
-		borderRadius: 8,
-		padding: 12,
-		marginBottom: 8,
-		borderLeftWidth: 4,
-	},
-	scheduleTime: {
-		fontSize: 12,
-		color: '#666',
-		fontWeight: '600',
-		marginBottom: 4,
-	},
-	scheduleTitle: {
-		fontSize: 16,
-		fontWeight: '600',
-		color: '#333',
-		marginBottom: 4,
-	},
-	scheduleCategory: {
-		fontSize: 12,
-		color: '#999',
 	},
 	emptyState: {
 		padding: 40,

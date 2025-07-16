@@ -13,8 +13,8 @@ import Animated, {
 	withSpring,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useScheduleStore } from '../../stores/scheduleStore';
-import ScheduleItem from '../ScheduleItem';
+import { useScheduleStore } from '../../../stores/scheduleStore';
+import DayScheduleItem from '../DayScheduleItem';
 
 interface DayLevelProps {
 	currentDate: Date;
@@ -50,8 +50,8 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 			const minutes = now.getMinutes();
 			const totalMinutes = hours * 60 + minutes;
 
-			// Each hour takes base 80px, scaled by current zoom level
-			const baseHourHeight = 80;
+			// Each hour takes base 60px, scaled by current zoom level
+			const baseHourHeight = 60;
 			const scaledHourHeight = baseHourHeight * scale.value;
 			const scrollPosition = (totalMinutes / 60) * scaledHourHeight;
 
@@ -105,8 +105,8 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 		const minutes = now.getMinutes();
 		const totalMinutes = hours * 60 + minutes;
 
-		// Each hour takes base 80px, scaled by zoom level
-		const baseHourHeight = 80;
+		// Each hour takes base 60px, scaled by zoom level
+		const baseHourHeight = 60;
 		const scaledHourHeight = baseHourHeight * scale.value;
 		const position = (totalMinutes / 60) * scaledHourHeight;
 
@@ -117,7 +117,7 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 
 	// Animated styles for hour rows
 	const animatedHourRowStyle = useAnimatedStyle(() => {
-		const baseHeight = 80;
+		const baseHeight = 60;
 		return {
 			height: baseHeight * scale.value,
 		};
@@ -148,25 +148,34 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 	};
 
 	const getScheduleItemStyle = (item: any) => {
-		const startHour = item.startTime.getHours();
-		const startMinute = item.startTime.getMinutes();
-		const endHour = item.endTime.getHours();
-		const endMinute = item.endTime.getMinutes();
-		
+		const startHour = new Date(item.startTime).getHours();
+		const startMinute = new Date(item.startTime).getMinutes();
+		const endHour = new Date(item.endTime).getHours();
+		const endMinute = new Date(item.endTime).getMinutes();
+
+		console.log("startHour-startMinute: ", startHour, startMinute);
+		console.log("endHour-endMinute: ", endHour, endMinute);
+
 		const startTotalMinutes = startHour * 60 + startMinute;
+		console.log("startTotalMinutes: ", startTotalMinutes);
 		const endTotalMinutes = endHour * 60 + endMinute;
+		console.log("endTotalMinutes: ", endTotalMinutes);
 		const duration = endTotalMinutes - startTotalMinutes;
-		
-		const baseHourHeight = 80;
+		console.log("duration: ", duration);
+
+		const baseHourHeight = 60;
 		const scaledHourHeight = baseHourHeight * scale.value;
-		
+		console.log("scaledHourHeight: ", scaledHourHeight);
+
 		const top = (startTotalMinutes / 60) * scaledHourHeight;
+		console.log("top: ", top);
 		const height = (duration / 60) * scaledHourHeight;
-		
+		console.log("height: ", height);
+
 		return {
 			position: 'absolute' as const,
 			top,
-			left: 85,
+			left: 65,
 			right: 16,
 			height: Math.max(height, 30),
 			zIndex: 5,
@@ -196,16 +205,16 @@ const DayLevel: React.FC<DayLevelProps> = React.memo(({
 								<View style={styles.timeLabel}>
 									<Text style={styles.timeText}>{formatHour(hour)}</Text>
 								</View>
-								<View style={styles.eventArea}>
+								{/* <View style={styles.eventArea}>
 									<View style={styles.hourLine} />
-								</View>
+								</View> */}
 							</Animated.View>
 						))}
 
 						{/* Schedule Items */}
 						{scheduleItems.map((item) => (
 							<View key={item.id} style={getScheduleItemStyle(item)}>
-								<ScheduleItem
+								<DayScheduleItem
 									item={item}
 									onEdit={handleEditSchedule}
 									onDelete={handleDeleteSchedule}
@@ -298,14 +307,14 @@ const styles = StyleSheet.create({
 		flex: 1,
 		position: 'relative',
 	},
-	hourLine: {
-		position: 'absolute',
-		top: 0,
-		left: 0,
-		right: 16,
-		height: 0.5,
-		backgroundColor: '#E5E5EA',
-	},
+	// hourLine: {
+	// 	position: 'absolute',
+	// 	top: 0,
+	// 	left: 0,
+	// 	right: 16,
+	// 	height: 0.5,
+	// 	backgroundColor: '#E5E5EA',
+	// },
 	currentTimeLine: {
 		position: 'absolute',
 		left: 0,
@@ -319,7 +328,7 @@ const styles = StyleSheet.create({
 		height: 8,
 		borderRadius: 4,
 		backgroundColor: '#FF3B30',
-		marginLeft: 76,
+		marginLeft: 56,
 		marginRight: 4,
 	},
 	currentTimeBar: {
@@ -330,12 +339,12 @@ const styles = StyleSheet.create({
 	},
 	currentTimeText: {
 		position: 'absolute',
-		left: 4,
-		top: -10,
+		left: 6,
+		top: -3,
 		fontSize: 12,
 		fontWeight: '600',
 		color: '#FF3B30',
 		backgroundColor: '#fff',
-		paddingHorizontal: 4,
+		paddingHorizontal: 0,
 	},
 });

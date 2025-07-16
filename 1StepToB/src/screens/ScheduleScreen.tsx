@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	View,
 	Text,
@@ -7,17 +7,34 @@ import {
 	SafeAreaView,
 } from 'react-native';
 import { ScheduledItem, ScheduleFormData } from '../types/Todo';
-import ScheduleForm from '../components/ScheduleForm';
+import ScheduleForm from '../components/schedule/ScheduleForm';
 import { generateId } from '../utils/dateUtils';
 import { useScheduleStore } from '../stores/scheduleStore';
-import Calendar from '../components/calendar/Calendar';
-import FloatingActionButton from '../components/FloatingActionButton';
+import Calendar from '../components/schedule/calendar/Calendar';
+import FloatingActionButton from '../components/schedule/FloatingActionButton';
 
-export const ScheduleScreen: React.FC = () => {
+interface ScheduleScreenProps {
+	navigation?: any;
+	route?: {
+		params?: {
+			editItem?: ScheduledItem;
+		};
+	};
+}
+
+export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({ navigation, route }) => {
 	const { items, addItem: addItemToStore, updateItem: updateItemInStore } = useScheduleStore();
 	const [showForm, setShowForm] = useState(false);
 	const [editingItem, setEditingItem] = useState<ScheduledItem | undefined>();
 	const [selectedDate, setSelectedDate] = useState(new Date());
+
+	// Handle edit item from navigation params
+	useEffect(() => {
+		if (route?.params?.editItem) {
+			setEditingItem(route.params.editItem);
+			setShowForm(true);
+		}
+	}, [route?.params?.editItem]);
 
 	const addScheduledItem = (data: ScheduleFormData) => {
 		const newItem: ScheduledItem = {

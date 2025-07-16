@@ -11,7 +11,8 @@ import {
 	Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { ScheduledItem, ScheduleFormData } from '../types/Todo';
+import { ScheduledItem, ScheduleFormData } from '../../types/Todo';
+
 
 interface ScheduleFormProps {
 	visible: boolean;
@@ -33,10 +34,9 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 	const [isAllDay, setIsAllDay] = useState(false);
 	const [category, setCategory] = useState('');
 	const [color, setColor] = useState('#007AFF');
-	const [showStartPicker, setShowStartPicker] = useState(false);
-	const [showEndPicker, setShowEndPicker] = useState(false);
-	const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-	const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+	const [showDatePicker, setShowDatePicker] = useState(false);
+	const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+	const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
 	const colorOptions = [
 		'#007AFF', '#FF3B30', '#34C759', '#FFCC00',
@@ -47,8 +47,8 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 		if (editingItem) {
 			setTitle(editingItem.title);
 			setDescription(editingItem.description || '');
-			setStartTime(editingItem.startTime);
-			setEndTime(editingItem.endTime);
+			setStartTime(new Date(editingItem.startTime));
+			setEndTime(new Date(editingItem.endTime));
 			setIsAllDay(editingItem.isAllDay);
 			setCategory(editingItem.category || '');
 			setColor(editingItem.color || '#007AFF');
@@ -100,26 +100,21 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 		onClose();
 	};
 
-	const onStartDateChange = (_event: any, selectedDate?: Date) => {
-		setShowStartDatePicker(Platform.OS === 'ios');
+	const onDateChange = (_event: any, selectedDate?: Date) => {
+		setShowDatePicker(false);
 		if (selectedDate) {
-			setStartTime(selectedDate);
-			if (selectedDate > endTime) {
-				const newEndTime = new Date(selectedDate.getTime() + 60 * 60 * 1000);
-				setEndTime(newEndTime);
-			}
-		}
-	};
+			const newStartTime = new Date(selectedDate);
+			newStartTime.setHours(startTime.getHours(), startTime.getMinutes());
+			setStartTime(newStartTime);
 
-	const onEndDateChange = (_event: any, selectedDate?: Date) => {
-		setShowEndDatePicker(Platform.OS === 'ios');
-		if (selectedDate) {
-			setEndTime(selectedDate);
+			const newEndTime = new Date(selectedDate);
+			newEndTime.setHours(endTime.getHours(), endTime.getMinutes());
+			setEndTime(newEndTime);
 		}
 	};
 
 	const onStartTimeChange = (_event: any, selectedTime?: Date) => {
-		setShowStartPicker(Platform.OS === 'ios');
+		setShowStartTimePicker(false);
 		if (selectedTime) {
 			const newStartTime = new Date(startTime);
 			newStartTime.setHours(selectedTime.getHours(), selectedTime.getMinutes());
@@ -133,7 +128,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 	};
 
 	const onEndTimeChange = (_event: any, selectedTime?: Date) => {
-		setShowEndPicker(Platform.OS === 'ios');
+		setShowEndTimePicker(false);
 		if (selectedTime) {
 			const newEndTime = new Date(endTime);
 			newEndTime.setHours(selectedTime.getHours(), selectedTime.getMinutes());
@@ -161,7 +156,11 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 					</TouchableOpacity>
 				</View>
 
-				<ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+				<ScrollView
+					style={styles.form}
+					contentContainerStyle={styles.formContent}
+					showsVerticalScrollIndicator={false}
+				>
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Title *</Text>
 						<TextInput
@@ -199,40 +198,49 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Date</Text>
-						<TouchableOpacity
-							style={styles.dateButton}
-							onPress={() => setShowStartDatePicker(true)}
-						>
+						<View style={styles.dateButton}>
 							<Text style={styles.dateButtonText}>
-								📅 {startTime.toLocaleDateString()}
+								📅
 							</Text>
-						</TouchableOpacity>
+							<DateTimePicker
+								value={startTime instanceof Date ? startTime : new Date(startTime)}
+								mode="date"
+								display="default"
+								onChange={onDateChange}
+							/>
+						</View>
 					</View>
 
 					{!isAllDay && (
 						<>
 							<View style={styles.inputGroup}>
 								<Text style={styles.label}>Start Time</Text>
-								<TouchableOpacity
-									style={styles.dateButton}
-									onPress={() => setShowStartPicker(true)}
-								>
+								<View style={styles.dateButton}>
 									<Text style={styles.dateButtonText}>
-										🕐 {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+										🕐
 									</Text>
-								</TouchableOpacity>
+									<DateTimePicker
+										value={startTime instanceof Date ? startTime : new Date(startTime)}
+										mode="time"
+										display="default"
+										onChange={onStartTimeChange}
+									/>
+								</View>
 							</View>
 
 							<View style={styles.inputGroup}>
 								<Text style={styles.label}>End Time</Text>
-								<TouchableOpacity
-									style={styles.dateButton}
-									onPress={() => setShowEndPicker(true)}
-								>
+								<View style={styles.dateButton}>
 									<Text style={styles.dateButtonText}>
-										🕐 {endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+										🕐
 									</Text>
-								</TouchableOpacity>
+									<DateTimePicker
+										value={endTime instanceof Date ? endTime : new Date(endTime)}
+										mode="time"
+										display="default"
+										onChange={onEndTimeChange}
+									/>
+								</View>
 							</View>
 						</>
 					)}
@@ -265,41 +273,6 @@ const ScheduleForm: React.FC<ScheduleFormProps> = React.memo(({
 					</View>
 				</ScrollView>
 
-				{showStartDatePicker && (
-					<DateTimePicker
-						value={startTime}
-						mode="date"
-						display="default"
-						onChange={onStartDateChange}
-					/>
-				)}
-
-				{showEndDatePicker && (
-					<DateTimePicker
-						value={endTime}
-						mode="date"
-						display="default"
-						onChange={onEndDateChange}
-					/>
-				)}
-
-				{showStartPicker && (
-					<DateTimePicker
-						value={startTime}
-						mode="time"
-						display="default"
-						onChange={onStartTimeChange}
-					/>
-				)}
-
-				{showEndPicker && (
-					<DateTimePicker
-						value={endTime}
-						mode="time"
-						display="default"
-						onChange={onEndTimeChange}
-					/>
-				)}
 			</View>
 		</Modal>
 	);
@@ -339,6 +312,10 @@ const styles = StyleSheet.create({
 		flex: 1,
 		padding: 16,
 	},
+	formContent: {
+		paddingBottom: 80,
+		flexGrow: 1,
+	},
 	inputGroup: {
 		marginBottom: 20,
 	},
@@ -366,15 +343,22 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 	},
 	dateButton: {
-		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 8,
+		flex: 1,
+		flexDirection: 'row',
+		alignItems: 'center',
 		padding: 12,
-		backgroundColor: '#fff',
 	},
 	dateButtonText: {
 		fontSize: 16,
 		color: '#333',
+	},
+	pickerContainer: {
+		marginTop: 8,
+		backgroundColor: '#fff',
+		borderRadius: 8,
+		borderWidth: 1,
+		borderColor: '#e0e0e0',
+		overflow: 'hidden',
 	},
 	colorContainer: {
 		flexDirection: 'row',

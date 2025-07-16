@@ -6,8 +6,9 @@ import {
 	StyleSheet,
 	Alert,
 } from 'react-native';
-import { Todo, TodoPriority } from '../types/Todo';
-import { formatDate, isToday, isTomorrow, isOverdue } from '../utils/dateUtils';
+import { Todo, TodoPriority } from '../../types/Todo';
+import { formatDate, isOverdue, isToday, isTomorrow } from '../../utils/dateUtils';
+
 
 interface TodoItemProps {
 	todo: Todo;
