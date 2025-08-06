@@ -16,6 +16,7 @@ import TodoItem from "../components/todo/TodoItem";
 import TodoForm from "../components/todo/TodoForm";
 import { SwipeableCard } from "../components/common";
 import { useTodoActions } from "../hooks/useTodoActions";
+import GrassTracker from "../components/analyze/Grass";
 
 interface HomeScreenProps {
   navigation?: {
@@ -155,6 +156,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     </View>
   );
 
+  interface GrassData {
+    date: string;
+    count: number;
+  }
+
+  // 샘플 데이터 생성
+  const generateSampleData = (): GrassData[] => {
+    const data: GrassData[] = [];
+    const today = new Date();
+
+    for (let i = 0; i < 40; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+
+      // 랜덤하게 활동 데이터 생성
+      const count = Math.random() < 0.7 ? Math.floor(Math.random() * 8) : 0;
+
+      data.push({
+        date: date.toISOString().split("T")[0],
+        count: count,
+      });
+    }
+
+    return data;
+  };
+
+  const sampleData = generateSampleData();
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -165,6 +194,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Text style={styles.subtitle}>Here's what's happening today</Text>
           </View>
         </View>
+
+        <GrassTracker
+          data={sampleData}
+          title="My Activity"
+          userJoinDate="2025-05-01" // 유저 가입일
+        />
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
@@ -187,7 +222,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             color="#007AFF"
           />
         </View>
-
         {/* Overdue Todos */}
         {overdueTodos.length > 0 && (
           <View style={styles.section}>
@@ -209,7 +243,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             ))}
           </View>
         )}
-
         {/* Today's Todos */}
         {todaysTodos.length > 0 && (
           <View style={styles.section}>
@@ -240,7 +273,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             ))}
           </View>
         )}
-
         {/* Today's Schedule */}
         {todaysSchedule.length > 0 && (
           <View style={styles.section}>
@@ -263,7 +295,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             ))}
           </View>
         )}
-
         {/* Upcoming Todos */}
         {upcomingTodos.length > 0 && (
           <View style={styles.section}>
@@ -283,7 +314,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             ))}
           </View>
         )}
-
         {/* Empty State */}
         {todos.length === 0 && scheduledItems.length === 0 && (
           <View style={styles.emptyState}>
